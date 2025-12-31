@@ -1,30 +1,133 @@
-# Fashion e-commerce design
+# Fashion E-Commerce Platform with AI-Driven Fraud Detection
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
+This project is a fashion e-commerce web application enhanced with an AI-driven fraud detection system during checkout.
+The primary goal is to demonstrate how real-world e-commerce platforms detect and prevent fraudulent orders using both rule-based logic and AI (Gemini).
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://tejaswinibhosle.vercel.app)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/QGoT0QgtEla)
+The application is currently developed and tested locally.
 
-## Overview
+# Features
+🛒 E-Commerce Core
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
+Product listing from database
 
-## Deployment
+Dynamic cart drawer
 
-Your project is live at:
+Checkout flow
 
-**[https://vercel.com/navanathbhosle2905-gmailcoms-projects/v0-fashion-e-commerce-design](https://vercel.com/navanathbhosle2905-gmailcoms-projects/v0-fashion-e-commerce-design)**
+Payment method selection (COD, UPI, Card)
 
-## Build your app
+Order summary and pricing calculation
 
-Continue building your app on:
+# Fraud Detection System (Main Focus)
 
-**[https://v0.dev/chat/projects/QGoT0QgtEla](https://v0.dev/chat/projects/QGoT0QgtEla)**
+Captures checkout behavioral signals:
 
-## How It Works
+Total order value
 
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+Number of items
+
+Payment method
+
+Digital vs physical products
+
+User login status
+
+Device & browser fingerprint
+
+Rule-based fraud scoring as baseline
+
+AI-powered risk evaluation using Google Gemini
+
+Final fraud decision:
+
+APPROVED
+
+VERIFY
+
+BLOCKED
+
+Stores fraud evaluation results in database for analysis
+
+# Authentication
+
+User authentication using Supabase
+
+Supports both:
+
+Logged-in users
+
+Guest checkout (user_id nullable)
+
+# Tech Stack
+# Frontend
+
+Next.js (App Router)
+
+React
+
+Tailwind CSS
+
+Framer Motion
+
+# Backend
+
+Next.js API Routes
+
+Supabase (PostgreSQL + Auth)
+
+Google Gemini AI (Fraud Risk Analysis)
+
+# Database
+
+PostgreSQL (via Supabase)
+
+# Database Schema (Core Tables)
+products
+
+Stores all available products.
+
+profiles
+
+Stores authenticated user profiles.
+
+checkout_events
+
+Stores each checkout attempt with fraud analysis:
+
+user_id (nullable)
+
+total_amount
+
+item_count
+
+payment_method
+
+has_digital_product
+
+is_new_user
+
+risk_level
+
+decision
+
+ai_reason
+
+device & network metadata
+
+# Fraud Detection Flow
+
+User proceeds to checkout
+
+Checkout data is collected
+
+Rule-based risk score is calculated
+
+Gemini AI analyzes the checkout context
+
+Rule score and AI result are merged
+
+Final decision is generated
+
+Event is stored in database
+
+UI reacts based on decision
