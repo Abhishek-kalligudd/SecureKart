@@ -18,7 +18,7 @@ export default function AuthPage() {
   const [errors, setErrors] = useState<{ email?: string; password?: string; name?: string }>({})
   const [isLoading, setIsLoading] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
-  const [isSignUp, setIsSignUp] = useState(false) // toggle between Sign In and Sign Up
+  const [isSignUp, setIsSignUp] = useState(false)
 
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -29,104 +29,98 @@ export default function AuthPage() {
   const validateForm = () => {
     const newErrors: { email?: string; password?: string; name?: string } = {}
 
-    if (!email) {
-      newErrors.email = "Email is required"
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = "Please enter a valid email address"
-    }
+    if (!email) newErrors.email = "Email is required"
+    else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = "Please enter a valid email address"
 
-    if (!password) {
-      newErrors.password = "Password is required"
-    } else if (password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters"
-    }
+    if (!password) newErrors.password = "Password is required"
+    else if (password.length < 6) newErrors.password = "Password must be at least 6 characters"
 
-    if (isSignUp && !name) {
-      newErrors.name = "Name is required"
-    }
+    if (isSignUp && !name) newErrors.name = "Name is required"
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!validateForm()) return;
+    e.preventDefault()
+    if (!validateForm()) return
 
-  setIsLoading(true);
+    setIsLoading(true)
 
-  if (isSignUp) {
-    // SIGN UP
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+    if (isSignUp) {
+      // SIGN UP
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { name } } // optional, store name in metadata
+      })
 
-    if (signUpError) {
-      setErrors({ email: signUpError.message });
-      setIsLoading(false);
-      return;
+      if (signUpError) {
+        setErrors({ email: signUpError.message })
+        setIsLoading(false)
+        return
+      }
+
+      const user = signUpData.user
+      if (!user) {
+        setErrors({ email: "Please check your email to confirm your account." })
+        setIsLoading(false)
+        return
+      }
+
+      // Insert into profiles table
+      const { error: profileError } = await supabase.from("profiles").insert([
+        {
+          id: user.id,
+          email: user.email,
+          name: name || email.split("@")[0],
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
+          created_at: new Date()
+        },
+      ])
+
+      if (profileError) {
+        console.log("Profile insert error:", profileError.message)
+      }
+
+      // Update local store & redirect
+      login({ name: name || email.split("@")[0], email, avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}` })
+      setShowSuccess(true)
+      setTimeout(() => router.push("/"), 1500)
+
+    } else {
+      // SIGN IN
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+
+      if (signInError) {
+        setErrors({ email: signInError.message })
+        setIsLoading(false)
+        return
+      }
+
+      const user = signInData.user
+      if (!user) {
+        setErrors({ email: "Unable to log in." })
+        setIsLoading(false)
+        return
+      }
+
+      // Fetch profile
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single()
+
+      if (profileError) console.log("Profile fetch error:", profileError.message)
+
+      login(profileData)
+      setShowSuccess(true)
+      setTimeout(() => router.push("/"), 1000)
     }
 
-    const user = signUpData.user;
-    if (!user) {
-      setErrors({ email: "Please check your email to confirm your account." });
-      setIsLoading(false);
-      return;
-    }
-
-    // Insert into profiles
-    const { error: profileError } = await supabase.from("profiles").insert([
-      {
-        id: user.id,
-        email: user.email,
-        name: email.split("@")[0],
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-      },
-    ]);
-
-    if (profileError) {
-      console.log("Profile insert error:", profileError.message);
-    }
-
-    // Auto-login if email confirmation disabled
-    login({ name: email.split("@")[0], email, avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}` });
-    router.push("/profile");
-  } else {
-    // SIGN IN
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (signInError) {
-      setErrors({ email: signInError.message });
-      setIsLoading(false);
-      return;
-    }
-
-    const user = signInData.user;
-    if (!user) {
-      setErrors({ email: "Unable to log in." });
-      setIsLoading(false);
-      return;
-    }
-
-    // Fetch profile from DB
-    const { data: profileData, error: profileError } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .single();
-
-    if (profileError) {
-      console.log("Profile fetch error:", profileError.message);
-    }
-
-    login(profileData);
-    router.push("/profile");
+    setIsLoading(false)
   }
-
-  setIsLoading(false);
-};
-
 
   if (showSuccess) {
     return (
@@ -172,7 +166,7 @@ export default function AuthPage() {
                 value={name}
                 onChange={(e) => {
                   setName(e.target.value)
-                  if (errors.name) setErrors((prev) => ({ ...prev, name: undefined }))
+                  if (errors.name) setErrors(prev => ({ ...prev, name: undefined }))
                 }}
                 className={`mt-2 ${errors.name ? "border-red-500 focus:ring-red-500" : ""}`}
               />
@@ -189,7 +183,7 @@ export default function AuthPage() {
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value)
-                if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }))
+                if (errors.email) setErrors(prev => ({ ...prev, email: undefined }))
               }}
               className={`mt-2 ${errors.email ? "border-red-500 focus:ring-red-500" : ""}`}
             />
@@ -206,7 +200,7 @@ export default function AuthPage() {
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value)
-                  if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }))
+                  if (errors.password) setErrors(prev => ({ ...prev, password: undefined }))
                 }}
                 className={`pr-10 ${errors.password ? "border-red-500 focus:ring-red-500" : ""}`}
               />

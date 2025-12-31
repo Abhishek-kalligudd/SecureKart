@@ -129,7 +129,7 @@ export function Header() {
                 </SheetContent>
               </Sheet>
 
-              <Link href={isLoggedIn ? "/account" : "/auth/login"}>
+              <Link href={isLoggedIn ? "/profile" : "login"}>
                 <Button variant="ghost" size="icon" className="text-stone-700 hover:text-stone-900">
                   {isLoggedIn && user?.avatar ? (
                     <div className="w-8 h-8 rounded-full overflow-hidden">
@@ -176,10 +176,10 @@ export function Header() {
                       </Link>
                     )}
                     <div className="mt-auto pt-8 border-t border-stone-200">
-                      <Link href={isLoggedIn ? "/account" : "/auth/login"}>
+                      <Link href={isLoggedIn ? "/profile" : "login"}>
                         <Button variant="outline" className="w-full justify-start">
                           <User className="w-4 h-4 mr-2" />
-                          {isLoggedIn ? "My Account" : "Sign In / Register"}
+                          {isLoggedIn ? "My Profile" : "Sign In / Register"}
                         </Button>
                       </Link>
                     </div>
