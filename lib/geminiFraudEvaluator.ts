@@ -3,21 +3,23 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export type GeminiRiskResult = {
-  risk_level: "LOW" | "MEDIUM" | "HIGH";
-  reason: string;
+	risk_level: "LOW" | "MEDIUM" | "HIGH";
+	reason: string;
 };
 
 export async function evaluateFraudWithGemini(input: {
-  total_amount: number;
-  item_count: number;
-  payment_method: string;
-  is_new_user: boolean;
-  has_digital_product: boolean;
-  country: string;
+	total_amount: number;
+	item_count: number;
+	payment_method: string;
+	is_new_user: boolean;
+	has_digital_product: boolean;
+	country: string;
+	location_mismatch?: boolean;
+	detected_country?: string;
 }): Promise<GeminiRiskResult> {
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+	const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-  const prompt = `
+	const prompt = `
 You are a fraud detection system for an e-commerce checkout.
 
 Analyze the following checkout data and assess fraud risk.
@@ -35,8 +37,14 @@ Checkout data:
 - Is new user: ${input.is_new_user}
 - Contains digital products: ${input.has_digital_product}
 - Country: ${input.country}
+- Location mismatch (IP vs billing country): ${
+		input.location_mismatch
+			? `YES (IP detected in ${input.detected_country ?? "unknown"})`
+			: "NO"
+	}
 
 Rules:
+- Location mismatches (IP != Country) are CRITICAL HIGH RISK indicators.
 - COD orders are riskier than prepaid
 - Digital goods increase fraud risk
 - New users increase fraud risk
@@ -44,25 +52,24 @@ Rules:
 - High total amount increases fraud risk
 `;
 
-  const result = await model.generateContent(prompt);
-  const text = result.response.text().trim();
+	const result = await model.generateContent(prompt);
+	const text = result.response.text().trim();
 
-  console.log("Gemini AI raw response:", text);
+	console.log("Gemini AI raw response:", text);
 
-  // Try to extract JSON from response
-  const match = text.match(/{.*}/s); // 's' flag allows newlines
-  if (match) {
-    try {
-      return JSON.parse(match[0]);
-    } catch (err) {
-      console.error("Failed to parse extracted JSON:", err);
-    }
-  }
+	// Try to extract JSON from response
+	const match = text.match(/{.*}/s); // 's' flag allows newlines
+	if (match) {
+		try {
+			return JSON.parse(match[0]);
+		} catch (err) {
+			console.error("Failed to parse extracted JSON:", err);
+		}
+	}
 
-  // Fallback if parsing fails
-  return {
-    risk_level: "MEDIUM",
-    reason: "AI response could not be parsed safely",
-  };
+	// Fallback if parsing fails
+	return {
+		risk_level: "MEDIUM",
+		reason: "AI response could not be parsed safely",
+	};
 }
-
